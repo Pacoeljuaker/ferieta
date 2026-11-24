@@ -1,0 +1,1915 @@
+// ======================================================
+// CONFIGURACIÓN SUPABASE (OPCIONAL - PEGA TUS CREDENCIALES AQUÍ)
+// ======================================================
+const SUPABASE_CONFIG = {
+  url: "",      // Ej: "https://abcdefghijklm.supabase.co"
+  anonKey: "",  // Ej: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  table: "puestos_feria",
+  localStorageKey: "feria_grecia_puestos_v1"
+};
+
+const FIN_CALLE  = [-33.468226, -70.561343];
+const INICIO_CALLE     = [-33.471722, -70.562747];
+const FIN_NUEVA_CALLE = [-33.471701, -70.562894];
+const INICIO_NUEVA_CALLE    = [-33.468232, -70.561512];
+
+const CATEGORIA_ESTILOS = {
+  "Verdulería": { icono: "fa-leaf", color: "#10b981" },
+  "Frutería": { icono: "fa-apple-whole", color: "#ef4444" },
+  "Frutería & Verdulería": { icono: "fa-leaf", color: "#10b981" },
+  "Abarrotes": { icono: "fa-store", color: "#3b82f6" },
+  "Abarrotes & Legumbres": { icono: "fa-seedling", color: "#84cc16" },
+  "Abarrotes & Limpieza": { icono: "fa-store", color: "#3b82f6" },
+  "Abarrotes & Mascota": { icono: "fa-store", color: "#3b82f6" },
+  "Abarrotes & Tradicional": { icono: "fa-store", color: "#3b82f6" },
+  "Pescadería": { icono: "fa-fish", color: "#0284c7" },
+  "Plantas & Jardín": { icono: "fa-seedling", color: "#84cc16" },
+  "Snacks & Dulces": { icono: "fa-cookie-bite", color: "#f97316" },
+  "Snacks & Bebidas": { icono: "fa-cookie-bite", color: "#f97316" },
+  "Bazar & Utensilios": { icono: "fa-utensils", color: "#a855f7" },
+  "Fitoterapia & Salud": { icono: "fa-pills", color: "#14b8a6" },
+  "Comida Preparada & Jugos": { icono: "fa-cup-straw", color: "#ec4899" }
+};
+
+function generarCoordenadasCalle(inicio, fin, puestos) {
+  const total = puestos.length;
+  return puestos.map((puesto, index) => {
+    const t = total > 1 ? index / (total - 1) : 0;
+    const lat = inicio[0] + t * (fin[0] - inicio[0]);
+    const lng = inicio[1] + t * (fin[1] - inicio[1]);
+    return {
+      ...puesto,
+      lat: Number(lat.toFixed(6)),
+      lng: Number(lng.toFixed(6))
+    };
+  });
+}
+
+// ======================================================
+// BASE DE DATOS INICIAL DE PUESTOS (CON DESCRIPCIÓN)
+// ======================================================
+const PUESTOS_BASE1 = [
+  {
+    id: 1,
+    numero: "Puesto 01",
+    nombre: "David",
+    categoria: "Snacks & Dulces",
+    descripcion: "Venta al detalle y por mayor de dulces, confites, calugones, tabletones y palomitas.",
+    icono: "fa-cookie-bite",
+    color: "#f97316",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Más Calugon", precio: 5500, unidad: "80 unidades" },
+      { nombre: "Tableton", precio: 3000, unidad: "750 gramos" },
+      { nombre: "Palomitas", precio: 3000, unidad: "20 unidades" }
+    ]
+  },
+  {
+    id: 2,
+    numero: "Puesto 02",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 3,
+    numero: "Puesto 03",
+    nombre: "Magda",
+    categoria: "Abarrotes & Mascota",
+    descripcion: "Huevos frescos normales y de campo por bandeja, además de alimento a granel para mascotas.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Huevos", precio: 4500, unidad: "30 unidades" },
+      { nombre: "Huevos de campo", precio: 9000, unidad: "30 unidades" },
+      { nombre: "Alimento para mascotas", precio: 1100, unidad: "kg" }
+    ]
+  },
+  {
+    id: 4,
+    numero: "Puesto 04",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 5,
+    numero: "Puesto 05",
+    nombre: "Pescadería Luis Loyola",
+    categoria: "Pescadería",
+    descripcion: "Pescados frescos del día: merluza, reineta y salmón fileteado o entero.",
+    icono: "fa-fish",
+    color: "#0284c7",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Merluza", precio: 4000, unidad: "kg" },
+      { nombre: "Reineta", precio: 10000, unidad: "kg" },
+      { nombre: "Salmon", precio: 18000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 6,
+    numero: "Puesto 06",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 7,
+    numero: "Puesto 07",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 8,
+    numero: "Puesto 08",
+    nombre: "Los Andes",
+    categoria: "Verdulería",
+    descripcion: "Verduras frescas seleccionadas de temporada como lechugas, alcachofas y zapallo trozado.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Lechuga", precio: 1000, unidad: "1 unidad" },
+      { nombre: "Alcachofas", precio: 2000, unidad: "5 unidades" },
+      { nombre: "Zapallo", precio: 1000, unidad: "1/2 kg" }
+    ]
+  },
+  {
+    id: 9,
+    numero: "Puesto 09",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 10,
+    numero: "Puesto 10",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 11,
+    numero: "Puesto 11",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 12,
+    numero: "Puesto 12",
+    nombre: "Héctor Luis",
+    categoria: "Frutería",
+    descripcion: "Fruta fresca de estación por kilo: frutillas dulces, mandarinas y plátanos.",
+    icono: "fa-apple-whole",
+    color: "#ef4444",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Frutilla", precio: 1000, unidad: "kg" },
+      { nombre: "Mandarina", precio: 2000, unidad: "kg" },
+      { nombre: "Plátano", precio: 2000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 13,
+    numero: "Puesto 13",
+    nombre: "Fernando Morales",
+    categoria: "Plantas & Jardín",
+    descripcion: "Variedad de plantas de interior, exterior y maceteros pequeños para el hogar.",
+    icono: "fa-seedling",
+    color: "#84cc16",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Planta interior y de jardín", precio: 2000, unidad: "1 unidad" },
+      { nombre: "Plantas chicas", precio: 800, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 14,
+    numero: "Puesto 14",
+    nombre: "Los Montecinos",
+    categoria: "Abarrotes & Limpieza",
+    descripcion: "Artículos de aseo, papel higiénico, servilletas y productos básicos para el hogar.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Swan", precio: 2200, unidad: "1 unidad" },
+      { nombre: "Like", precio: 2500, unidad: "1 unidad" },
+      { nombre: "Servilletas bezella", precio: 2000, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 15,
+    numero: "Puesto 15",
+    nombre: "Huevos Kika",
+    categoria: "Abarrotes",
+    descripcion: "Venta especializada de bandejas de huevos blancos en calibres tercera, extra y súper extra.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Huevo tercera blanca", precio: 3800, unidad: "30 unidades" },
+      { nombre: "Huevo extra blanco", precio: 5800, unidad: "30 unidades" },
+      { nombre: "Huevo super extra blanco", precio: 6900, unidad: "30 unidades" }
+    ]
+  },
+  {
+    id: 16,
+    numero: "Puesto 16",
+    nombre: "Isidora Olivera",
+    categoria: "Verdulería",
+    descripcion: "Paltas Hass maduras y para guardar, tomates frescos y chirimoyas de calidad.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Palta hass", precio: 3000, unidad: "kg" },
+      { nombre: "Tomate", precio: 1500, unidad: "kg" },
+      { nombre: "Chirimoya", precio: 3000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 17,
+    numero: "Puesto 17",
+    nombre: "Javier Benitez",
+    categoria: "Verdulería",
+    descripcion: "Hortalizas frescas por kilo como espárragos, zapallo y brócoli.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Espárragos", precio: 2000, unidad: "kg" },
+      { nombre: "Zapallo", precio: 2500, unidad: "kg" },
+      { nombre: "Brócoli", precio: 1500, unidad: "kg" }
+    ]
+  },
+  {
+    id: 18,
+    numero: "Puesto 18",
+    nombre: "Los Montecinos",
+    categoria: "Abarrotes & Limpieza",
+    descripcion: "Detergentes líquidos, lavalozas y suavizantes económicos para el lavado diario.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Wyn lavalozas", precio: 1500, unidad: "750ml" },
+      { nombre: "Detergente omo (rinde 3L)", precio: 1000, unidad: "3l" },
+      { nombre: "Suavizante soft", precio: 2000, unidad: "1l" }
+    ]
+  },
+  {
+    id: 19,
+    numero: "Puesto 19",
+    nombre: "Del mundo a su mesa",
+    categoria: "Verdulería",
+    descripcion: "Condimentos frescos, jengibre, cebolla morada y ají chileno para cocinar.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Jengibre", precio: 6000, unidad: "kg" },
+      { nombre: "Cebolla morada", precio: 1600, unidad: "kg" },
+      { nombre: "Ají chileno", precio: 15000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 20,
+    numero: "Puesto 20",
+    nombre: "Mai",
+    categoria: "Bazar & Utensilios",
+    descripcion: "Utensilios de cocina prácticos: cuchillos, tijeras multiuso y tostadores tradicionales.",
+    icono: "fa-utensils",
+    color: "#a855f7",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Cuchillo", precio: 2000, unidad: "1 unidad" },
+      { nombre: "Tijeras", precio: 2500, unidad: "1 unidad" },
+      { nombre: "Tostadores", precio: 2000, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 21,
+    numero: "Puesto 21",
+    nombre: "Diconga flores",
+    categoria: "Plantas & Jardín",
+    descripcion: "Ramos de flores frescas, almácigos y tierra de hoja preparada para jardín.",
+    icono: "fa-seedling",
+    color: "#84cc16",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Ramos de flores", precio: 3000, unidad: "1 unidad" },
+      { nombre: "Almacius", precio: 1500, unidad: "1 unidad" },
+      { nombre: "Tierra", precio: 1000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 22,
+    numero: "Puesto 22",
+    nombre: "Juana Gonzáles",
+    categoria: "Abarrotes",
+    descripcion: "Productos tradicionales chilenos: mote de trigo, cochayuyo y aceitunas por cuarto.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Mote", precio: 1800, unidad: "kg" },
+      { nombre: "Cochayullo", precio: 2500, unidad: "1 unidad" },
+      { nombre: "Aceitunas (cuarto)", precio: 1800, unidad: "250gr" }
+    ]
+  },
+  {
+    id: 23,
+    numero: "Puesto 23",
+    nombre: "Juan Guillermo",
+    categoria: "Verdulería",
+    descripcion: "Verduras frescas de temporada: alcachofas por paquete, zapallo y espárragos.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Alcachofas", precio: 2000, unidad: "4 unidades" },
+      { nombre: "Zapallo (medio kilo)", precio: 1200, unidad: "1/2 kg" },
+      { nombre: "Espárragos", precio: 2000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 24,
+    numero: "Puesto 24",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 25,
+    numero: "Puesto 25",
+    nombre: "Abarrotes Gaspar",
+    categoria: "Abarrotes",
+    descripcion: "Abarrotes esenciales para la despensa: azúcar, arroz y paquetes de fideos.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Azúcar", precio: 1000, unidad: "kg" },
+      { nombre: "Arroz", precio: 990, unidad: "kg" },
+      { nombre: "Fideos", precio: 990, unidad: "2 unidades" }
+    ]
+  },
+  {
+    id: 26,
+    numero: "Puesto 26",
+    nombre: "Adelaida Araya",
+    categoria: "Verdulería",
+    descripcion: "Cebollas por malla, cilantro fresco y betarragas seleccionadas.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Cebolla", precio: 2000, unidad: "5 unidades" },
+      { nombre: "Cilantro", precio: 1000, unidad: "1 unidad" },
+      { nombre: "Betarraga", precio: 1500, unidad: "kg" }
+    ]
+  },
+  {
+    id: 27,
+    numero: "Puesto 27",
+    nombre: "Marlene",
+    categoria: "Verdulería",
+    descripcion: "Pepinos de ensalada, espárragos frescos y limones jugosos a buen precio.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Pepino", precio: 1000, unidad: "2 unidades" },
+      { nombre: "Espárragos", precio: 1600, unidad: "kg" },
+      { nombre: "Limón", precio: 500, unidad: "kg" }
+    ]
+  },
+  {
+    id: 28,
+    numero: "Puesto 28",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 29,
+    numero: "Puesto 29",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 30,
+    numero: "Puesto 30",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 31,
+    numero: "Puesto 31",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 32,
+    numero: "Puesto 32",
+    nombre: "Fruta con sanitos",
+    categoria: "Frutería",
+    descripcion: "Frutas frescas y paltas seleccionadas para consumo diario.",
+    icono: "fa-apple-whole",
+    color: "#ef4444",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Plátano", precio: 1700, unidad: "kg" },
+      { nombre: "Frutilla", precio: 1000, unidad: "kg" },
+      { nombre: "Palta", precio: 3000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 33,
+    numero: "Puesto 33",
+    nombre: "papas y cereales",
+    categoria: "Verdulería",
+    descripcion: "Especialidad en papas lavadas, sucias y semillón por kilo.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Semillón", precio: 800, unidad: "kg" },
+      { nombre: "Papa sucia", precio: 1000, unidad: "kg" },
+      { nombre: "Papa lavada", precio: 1400, unidad: "kg" }
+    ]
+  },
+  {
+    id: 34,
+    numero: "Puesto 34",
+    nombre: "Fanny Guajardo",
+    categoria: "Verdulería",
+    descripcion: "Bandejas de ensaladas listas para servir, chapsui de verduras y espárragos.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Espárragos", precio: 1000, unidad: "kg" },
+      { nombre: "Ensalada", precio: 1000, unidad: "2 unidades" },
+      { nombre: "Chapsui", precio: 1000, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 35,
+    numero: "Puesto 35",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 36,
+    numero: "Puesto 36",
+    nombre: "Botica Bethesdalem",
+    categoria: "Fitoterapia & Salud",
+    descripcion: "Hierbas medicinales naturales, pomadas artesanales y shampoo herbal.",
+    icono: "fa-pills",
+    color: "#14b8a6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Hierba", precio: 1000, unidad: "kg" },
+      { nombre: "Pomadas", precio: 1000, unidad: "1 unidad" },
+      { nombre: "Shampoo", precio: 6000, unidad: "1l" }
+    ]
+  },
+  {
+    id: 37,
+    numero: "Puesto 37",
+    nombre: "Viajo Nilo",
+    categoria: "Verdulería",
+    descripcion: "Papas de distintas variedades (La Serena y sureña) y semillón.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Papá la serena", precio: 1500, unidad: "kg" },
+      { nombre: "Semillón", precio: 1000, unidad: "kg" },
+      { nombre: "Papá sureña", precio: 4000, unidad: "3 unidades" }
+    ]
+  },
+  {
+    id: 38,
+    numero: "Puesto 38",
+    nombre: "Leonor",
+    categoria: "Verdulería",
+    descripcion: "Porotos granados/blancos, espárragos y bandejas surtidas de verduras para cazuela o carbonada.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Espárragos", precio: 2000, unidad: "kg" },
+      { nombre: "Poroto blanco", precio: 3000, unidad: "kg" },
+      { nombre: "Bandejas de verdura", precio: 1000, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 39,
+    numero: "Puesto 39",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 40,
+    numero: "Puesto 40",
+    nombre: "Su casero",
+    categoria: "Pescadería",
+    descripcion: "Productos del mar frescos: merluza austral, albacora y reineta por kilo.",
+    icono: "fa-fish",
+    color: "#0284c7",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Merluza austral", precio: 8000, unidad: "kg" },
+      { nombre: "Albacora", precio: 12000, unidad: "kg" },
+      { nombre: "Reineta", precio: 8000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 41,
+    numero: "Puesto 41",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 42,
+    numero: "Puesto 42",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 43,
+    numero: "Puesto 43",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 44,
+    numero: "Puesto 44",
+    nombre: "Barbara Ortega",
+    categoria: "Verdulería",
+    descripcion: "Hojas verdes gourmet y hongos frescos: rúcula, champiñones y berros.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Rúcula", precio: 1000, unidad: "150gr" },
+      { nombre: "Champiñón", precio: 2500, unidad: "250gr" },
+      { nombre: "Berro", precio: 1000, unidad: "100gr" }
+    ]
+  },
+  {
+    id: 45,
+    numero: "Puesto 45",
+    nombre: "Fresia",
+    categoria: "Frutería",
+    descripcion: "Frutas dulces de temporada: naranjas de jugo, sandía y manzanas.",
+    icono: "fa-apple-whole",
+    color: "#ef4444",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Naranja", precio: 6000, unidad: "kg" },
+      { nombre: "Sandía", precio: 2000, unidad: "kg" },
+      { nombre: "Manzana", precio: 800, unidad: "kg" }
+    ]
+  },
+  {
+    id: 46,
+    numero: "Puesto 46",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 47,
+    numero: "Puesto 47",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 48,
+    numero: "Puesto 48",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 49,
+    numero: "Puesto 49",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 50,
+    numero: "Puesto 50",
+    nombre: "Alexandra Vergara",
+    categoria: "Verdulería",
+    descripcion: "Verduras frescas por unidad y medio kilo: espárragos, cebollas y lechuga costina.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Espárragos", precio: 1000, unidad: "1/2kg" },
+      { nombre: "Cebolla", precio: 400, unidad: "1 unidad" },
+      { nombre: "Costina", precio: 1500, unidad: "1 unidad" }
+    ]
+  }
+];
+
+const PUESTOS_BASE2 = [
+  {
+    id: 51,
+    numero: "Puesto 51",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 52,
+    numero: "Puesto 52",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 53,
+    numero: "Puesto 53",
+    nombre: "Astrid",
+    categoria: "Verdulería",
+    descripcion: "Limones, zapallos y tomates frescos a precios accesibles.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Limón", precio: 1000, unidad: "1/2kg" },
+      { nombre: "Zapallo", precio: 2000, unidad: "3 unidades" },
+      { nombre: "Tomate", precio: 1300, unidad: "kg" }
+    ]
+  },
+  {
+    id: 54,
+    numero: "Puesto 54",
+    nombre: "Juan Andrés",
+    categoria: "Frutería & Verdulería",
+    descripcion: "Surtido de frutas y verduras frescas: tomates, paltas y peras de estación.",
+    icono: "fa-apple-whole",
+    color: "#ef4444",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Tomate", precio: 1300, unidad: "kg" },
+      { nombre: "Palta", precio: 2500, unidad: "kg" },
+      { nombre: "Pera", precio: 1300, unidad: "kg" }
+    ]
+  },
+  {
+    id: 55,
+    numero: "Puesto 55",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 56,
+    numero: "Puesto 56",
+    nombre: "Antonio",
+    categoria: "Abarrotes & Legumbres",
+    descripcion: "Legumbres seleccionadas por kilo (porotos, lentejas) y papas frescas.",
+    icono: "fa-seedling",
+    color: "#84cc16",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Poroto", precio: 3000, unidad: "kg" },
+      { nombre: "Lentejas", precio: 3500, unidad: "kg" },
+      { nombre: "Papas", precio: 1200, unidad: "kg" }
+    ]
+  },
+  {
+    id: 57,
+    numero: "Puesto 57",
+    nombre: "Isabel cabrera",
+    categoria: "Verdulería",
+    descripcion: "Ensaladas preparadas, pasta de ají pebre casero y atados de apio fresco.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Ensalada", precio: 1000, unidad: "1 unidad" },
+      { nombre: "Ají pebre", precio: 1000, unidad: "1 unidad" },
+      { nombre: "Hojas de apio", precio: 600, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 58,
+    numero: "Puesto 58",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 59,
+    numero: "Puesto 59",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 60,
+    numero: "Puesto 60",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 61,
+    numero: "Puesto 61",
+    nombre: "Eduardo Escobar",
+    categoria: "Plantas & Jardín",
+    descripcion: "Flores de temporada, ruda y plantines de tomate listos para trasplantar.",
+    icono: "fa-seedling",
+    color: "#84cc16",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Flores temporada", precio: 1000, unidad: "1 unidad" },
+      { nombre: "Ruta", precio: 1000, unidad: "1 unidad" },
+      { nombre: "Planta de tomate", precio: 1000, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 62,
+    numero: "Puesto 62",
+    nombre: "Casero las papas",
+    categoria: "Verdulería & Legumbres",
+    descripcion: "Papas por kilo, legumbres fraccionadas y miel pura de abeja.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Papá", precio: 1600, unidad: "kg" },
+      { nombre: "Legumbres", precio: 1800, unidad: "1/2kg" },
+      { nombre: "Miel", precio: 6900, unidad: "kg" }
+    ]
+  },
+  {
+    id: 63,
+    numero: "Puesto 63",
+    nombre: "sergio",
+    categoria: "Snacks & Bebidas",
+    descripcion: "Snacks dulces, bebidas frías y energéticas para refrescarse durante la compra.",
+    icono: "fa-cookie-bite",
+    color: "#f97316",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Palomitos", precio: 1400, unidad: "1 unidad" },
+      { nombre: "Bebidas", precio: 1500, unidad: "1 unidad" },
+      { nombre: "Energéticas", precio: 1500, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 64,
+    numero: "Puesto 64",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 65,
+    numero: "Puesto 65",
+    nombre: "caterin Saavedra",
+    categoria: "Frutería",
+    descripcion: "Frutas frescas por kilo: manzanas, naranjas y mandarinas.",
+    icono: "fa-apple-whole",
+    color: "#ef4444",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Manzana", precio: 1000, unidad: "kg" },
+      { nombre: "Naranja", precio: 800, unidad: "kg" },
+      { nombre: "Mandarina", precio: 2000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 66,
+    numero: "Puesto 66",
+    nombre: "Felipe atiman",
+    categoria: "Frutería",
+    descripcion: "Frutas tropicales y de temporada: paltas, mangos y chirimoyas.",
+    icono: "fa-apple-whole",
+    color: "#ef4444",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Palta", precio: 3500, unidad: "kg" },
+      { nombre: "Mango", precio: 1600, unidad: "1 unidad" },
+      { nombre: "Chirimoya", precio: 3500, unidad: "kg" }
+    ]
+  },
+  {
+    id: 67,
+    numero: "Puesto 67",
+    nombre: "Carolina Zuñiga",
+    categoria: "Verdulería",
+    descripcion: "Zanahorias, limones y bandejas de verduras picadas listas para cocinar.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Zanahoria", precio: 1600, unidad: "kg" },
+      { nombre: "Limon", precio: 600, unidad: "kg" },
+      { nombre: "bandejas de verdura", precio: 1000, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 68,
+    numero: "Puesto 68",
+    nombre: "distribuidora de huevitos don José",
+    categoria: "Abarrotes",
+    descripcion: "Distribuidora de huevos frescos en formatos jumbo, extra blanco y súper.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Huevo jumbo", precio: 6000, unidad: "1 unidad" },
+      { nombre: "Extra blanco", precio: 5900, unidad: "1 unidad" },
+      { nombre: "Super", precio: 6900, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 69,
+    numero: "Puesto 69",
+    nombre: "Frutas Josefa Ignacia",
+    categoria: "Frutería",
+    descripcion: "Chirimoyas, tomates y frutillas frescas seleccionadas del día.",
+    icono: "fa-apple-whole",
+    color: "#ef4444",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Chirimoya", precio: 3500, unidad: "kg" },
+      { nombre: "Tomate", precio: 700, unidad: "kg" },
+      { nombre: "Frutilla", precio: 1200, unidad: "kg" }
+    ]
+  },
+  {
+    id: 70,
+    numero: "Puesto 70",
+    nombre: "Lina flores",
+    categoria: "Verdulería & Legumbres",
+    descripcion: "Camotes, papas y legumbres surtidas por kilo.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Camote", precio: 2500, unidad: "kg" },
+      { nombre: "Papas", precio: 1700, unidad: "kg" },
+      { nombre: "Legumbres", precio: 3500, unidad: "kg" }
+    ]
+  },
+  {
+    id: 71,
+    numero: "Puesto 71",
+    nombre: "Fernando",
+    categoria: "Verdulería",
+    descripcion: "Ofertas en pimentones, mallas de limón y pepinos de ensalada.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Pimentón", precio: 2000, unidad: "3 unidades" },
+      { nombre: "Limón", precio: 1000, unidad: "1.5kg" },
+      { nombre: "Pepino", precio: 1000, unidad: "3 unidades" }
+    ]
+  },
+  {
+    id: 72,
+    numero: "Puesto 72",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 73,
+    numero: "Puesto 73",
+    nombre: "David González",
+    categoria: "Verdulería",
+    descripcion: "Papas clasificadas por tamaño (grande, extra y chica) a precios convenientes.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Papa grande", precio: 1200, unidad: "kg" },
+      { nombre: "Papa extra", precio: 1500, unidad: "kg" },
+      { nombre: "Papa chica", precio: 1000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 74,
+    numero: "Puesto 74",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 75,
+    numero: "Puesto 75",
+    nombre: "Jorta Guerra",
+    categoria: "Abarrotes & Limpieza",
+    descripcion: "Insumos de limpieza doméstica: traperos, paños absorbentes y packs de esponjas.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Trapero", precio: 1000, unidad: "1 unidad" },
+      { nombre: "Paño", precio: 4000, unidad: "1 unidad" },
+      { nombre: "Esponja", precio: 1000, unidad: "5 unidades" }
+    ]
+  },
+  {
+    id: 76,
+    numero: "Puesto 76",
+    nombre: "Donde Las Chiquillas",
+    categoria: "Frutería & Verdulería",
+    descripcion: "Frutillas, paltas y plátanos seleccionados con atención cercana.",
+    icono: "fa-apple-whole",
+    color: "#ef4444",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Frutilla", precio: 1200, unidad: "kg" },
+      { nombre: "Palta", precio: 3800, unidad: "kg" },
+      { nombre: "Plátanos", precio: 1700, unidad: "kg" }
+    ]
+  },
+  {
+    id: 77,
+    numero: "Puesto 77",
+    nombre: "Sara",
+    categoria: "Abarrotes",
+    descripcion: "Huevos blancos y de color junto con queso fresco y mantecoso por kilo.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Huevo blanco", precio: 4200, unidad: "1 unidad" },
+      { nombre: "Huevo de color", precio: 6200, unidad: "1 unidad" },
+      { nombre: "Queso", precio: 10000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 78,
+    numero: "Puesto 78",
+    nombre: "Juan Carper",
+    categoria: "Abarrotes & Tradicional",
+    descripcion: "Frutos secos y productos típicos: aceitunas, harina tostada y maní.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Aceitunas", precio: 2500, unidad: "cuarto" },
+      { nombre: "Harina tostada", precio: 2000, unidad: "kg" },
+      { nombre: "Maní", precio: 1500, unidad: "cuarto" }
+    ]
+  },
+  {
+    id: 79,
+    numero: "Puesto 79",
+    nombre: "Omar Páez",
+    categoria: "Frutería & Verdulería",
+    descripcion: "Paltas, tomates y plátanos frescos por kilo.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Palta", precio: 2500, unidad: "kg" },
+      { nombre: "Tomate", precio: 1500, unidad: "kg" },
+      { nombre: "Plátano", precio: 1800, unidad: "kg" }
+    ]
+  },
+  {
+    id: 80,
+    numero: "Puesto 80",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 81,
+    numero: "Puesto 81",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 82,
+    numero: "Puesto 82",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 83,
+    numero: "Puesto 83",
+    nombre: "Huevos Loop",
+    categoria: "Abarrotes",
+    descripcion: "Bandejas de huevos frescos en calibres jumbo, súper y extra.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Huevo jumbo", precio: 8000, unidad: "20 unidades" },
+      { nombre: "Huevo super", precio: 7000, unidad: "30 unidades" },
+      { nombre: "Huevo extra", precio: 6500, unidad: "30 unidades" }
+    ]
+  },
+  {
+    id: 84,
+    numero: "Puesto 84",
+    nombre: "Jugos Karen",
+    categoria: "Comida Preparada & Jugos",
+    descripcion: "Jugos naturales preparados al momento con fruta fresca (frutilla, piña y arándano).",
+    icono: "fa-cup-straw",
+    color: "#ec4899",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Frutilla en agua", precio: 2500, unidad: "1 unidad" },
+      { nombre: "Piña en agua", precio: 2500, unidad: "1 unidad" },
+      { nombre: "Arándano en agua", precio: 2500, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 85,
+    numero: "Puesto 85",
+    nombre: "Alexis",
+    categoria: "Verdulería",
+    descripcion: "Espárragos, betarragas y lechugas frescas por unidad.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Espárragos", precio: 1500, unidad: "1 unidad" },
+      { nombre: "Betarraga", precio: 1500, unidad: "1 unidad" },
+      { nombre: "Lechuga", precio: 1000, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 86,
+    numero: "Puesto 86",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 87,
+    numero: "Puesto 87",
+    nombre: "Frutos Del País Rey",
+    categoria: "Abarrotes & Legumbres",
+    descripcion: "Mote, aceitunas y legumbres seleccionadas fraccionadas por medio kilo o cuarto.",
+    icono: "fa-store",
+    color: "#3b82f6",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Mote", precio: 900, unidad: "1/2 kg" },
+      { nombre: "Aceitunas", precio: 1500, unidad: "cuarto" },
+      { nombre: "Legumbres", precio: 1800, unidad: "1/2 kg" }
+    ]
+  },
+  {
+    id: 88,
+    numero: "Puesto 88",
+    nombre: "Pascale Andrea",
+    categoria: "Frutería",
+    descripcion: "Paltas, chirimoyas y frutillas frescas por kilo.",
+    icono: "fa-apple-whole",
+    color: "#ef4444",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Palta", precio: 3500, unidad: "kg" },
+      { nombre: "Chirimoya", precio: 3500, unidad: "kg" },
+      { nombre: "Frutilla", precio: 1200, unidad: "kg" }
+    ]
+  },
+  {
+    id: 89,
+    numero: "Puesto 89",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 90,
+    numero: "Puesto 90",
+    nombre: "Heraldo",
+    categoria: "Frutería & Verdulería",
+    descripcion: "Paltas, tomates y plátanos frescos por kilo.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Palta", precio: 2500, unidad: "kg" },
+      { nombre: "Tomate", precio: 1200, unidad: "kg" },
+      { nombre: "Plátano", precio: 1700, unidad: "kg" }
+    ]
+  },
+  {
+    id: 91,
+    numero: "Puesto 91",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 92,
+    numero: "Puesto 92",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 93,
+    numero: "Puesto 93",
+    nombre: "Carlos Aradán",
+    categoria: "Frutería & Verdulería",
+    descripcion: "Limones por bolsa, tomates cherry y tomates tradicionales.",
+    icono: "fa-apple-whole",
+    color: "#ef4444",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Limón", precio: 1000, unidad: "2 kg" },
+      { nombre: "Cherry", precio: 2500, unidad: "kg" },
+      { nombre: "Tomate", precio: 2000, unidad: "kg" }
+    ]
+  },
+  {
+    id: 94,
+    numero: "Puesto 94",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 95,
+    numero: "Puesto 95",
+    nombre: "Sin Nombre",
+    categoria: "Frutería & Verdulería",
+    descripcion: "Venta de tomates y limones frescos por kilo.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Tomate", precio: 1300, unidad: "kg" },
+      { nombre: "Limón", precio: 700, unidad: "kg" }
+    ]
+  },
+  {
+    id: 96,
+    numero: "Puesto 96",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 97,
+    numero: "Puesto 97",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 98,
+    numero: "Puesto 98",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 99,
+    numero: "Puesto 99",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 100,
+    numero: "Puesto 100",
+    nombre: "Rafael Barrales",
+    categoria: "Frutería & Verdulería",
+    descripcion: "Tomates, pimentones y limones frescos por kilo o unidad.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Tomate", precio: 1400, unidad: "kg" },
+      { nombre: "Pimentón", precio: 1500, unidad: "1 unidad" },
+      { nombre: "Limón", precio: 400, unidad: "kg" }
+    ]
+  },
+  {
+    id: 101,
+    numero: "Puesto 101",
+    nombre: "Nicol",
+    categoria: "Frutería & Comida",
+    descripcion: "Frutas frescas de temporada: frutillas, plátanos y sandías.",
+    icono: "fa-apple-whole",
+    color: "#ef4444",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Frutilla", precio: 1000, unidad: "kg" },
+      { nombre: "Plátano", precio: 1600, unidad: "kg" },
+      { nombre: "Sandía", precio: 1000, unidad: "1 unidad" }
+    ]
+  },
+  {
+    id: 102,
+    numero: "Puesto 102",
+    nombre: "Sin Nombre",
+    categoria: "Verdulería",
+    descripcion: "Papas por mallas y kilos: papas Serena, papas nuevas y papas tradicionales.",
+    icono: "fa-leaf",
+    color: "#10b981",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [
+      { nombre: "Papas Serena", precio: 3200, unidad: "2 kg" },
+      { nombre: "Papas nuevas", precio: 2400, unidad: "3 kg" },
+      { nombre: "Papas", precio: 4000, unidad: "3 kg" }
+    ]
+  },
+  {
+    id: 103,
+    numero: "Puesto 103",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 104,
+    numero: "Puesto 104",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 105,
+    numero: "Puesto 105",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 106,
+    numero: "Puesto 106",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  },
+  {
+    id: 107,
+    numero: "Puesto 107",
+    nombre: "Pendiente",
+    categoria: "Pendiente",
+    descripcion: "Puesto disponible para registro de vendedor en Feria Grecia.",
+    icono: "fa-basket-shopping",
+    color: "#64748b",
+    imagen: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    productos: [{ nombre: "Por definir", precio: 1000, unidad: "kg" }]
+  }
+];
+
+let map;
+let markersLayerGroup;
+let STALLS = [];
+
+function esPuestoPendiente(stall) {
+  return (
+    String(stall.nombre || "").trim().toLowerCase() === "pendiente" ||
+    String(stall.categoria || "").trim().toLowerCase() === "pendiente"
+  );
+}
+
+function normalizarPuesto(puesto) {
+  const pendiente = esPuestoPendiente(puesto);
+  return {
+    ...puesto,
+    descripcion:
+      puesto.descripcion && puesto.descripcion.trim().length > 0
+        ? puesto.descripcion.trim()
+        : pendiente
+          ? "Puesto disponible para registro de vendedor en Feria Grecia."
+          : `Puesto de ${puesto.categoria} atendido por ${puesto.nombre}.`
+  };
+}
+
+// ======================================================
+// BACKEND (VERCEL API -> SUPABASE -> LOCALSTORAGE)
+// ======================================================
+async function cargarPuestosDesdeBackend() {
+  const baseConCoordenadas = [
+    ...generarCoordenadasCalle(INICIO_CALLE, FIN_CALLE, PUESTOS_BASE1),
+    ...generarCoordenadasCalle(INICIO_NUEVA_CALLE, FIN_NUEVA_CALLE, PUESTOS_BASE2)
+  ].map(normalizarPuesto);
+
+  const coordMap = new Map(baseConCoordenadas.map(p => [p.id, p]));
+
+  // 1. Intentar API de Vercel (/api/puestos) si existe
+  try {
+    const res = await fetch("/api/puestos", { method: "GET" });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.puestos) && data.puestos.length > 0) {
+        actualizarEstadoBadge("Sincronizado (Nube)", "bg-emerald-500");
+        return fusionarConBase(baseConCoordenadas, data.puestos, coordMap);
+      }
+    }
+  } catch (_) {}
+
+  // 2. Intentar Supabase directo si el usuario pegó url y anonKey arriba
+  if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey) {
+    try {
+      const url = `${SUPABASE_CONFIG.url}/rest/v1/${SUPABASE_CONFIG.table}?select=*&order=id.asc`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: SUPABASE_CONFIG.anonKey,
+          Authorization: `Bearer ${SUPABASE_CONFIG.anonKey}`
+        }
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        actualizarEstadoBadge("Supabase Activo", "bg-emerald-500");
+        return fusionarConBase(baseConCoordenadas, rows, coordMap);
+      }
+    } catch (err) {
+      console.warn("Error leyendo Supabase:", err);
+    }
+  }
+
+  // 3. Respaldo en localStorage del navegador
+  actualizarEstadoBadge("Modo Local", "bg-amber-400");
+  try {
+    const guardado = localStorage.getItem(SUPABASE_CONFIG.localStorageKey);
+    if (guardado) {
+      const parsed = JSON.parse(guardado);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return fusionarConBase(baseConCoordenadas, parsed, coordMap);
+      }
+    }
+  } catch (err) {
+    console.warn("Error leyendo localStorage:", err);
+  }
+
+  return baseConCoordenadas;
+}
+
+function fusionarConBase(baseList, remoteList, coordMap) {
+  const remoteMap = new Map(remoteList.map(r => [Number(r.id), r]));
+  return baseList.map(base => {
+    const rem = remoteMap.get(base.id);
+    if (!rem) return base;
+    return normalizarPuesto({
+      ...base,
+      ...rem,
+      lat: base.lat,
+      lng: base.lng,
+      productos: typeof rem.productos === "string" ? JSON.parse(rem.productos) : (rem.productos || base.productos)
+    });
+  });
+}
+
+async function guardarPuestoEnBackend(puestoActualizado) {
+  STALLS = STALLS.map(item => (item.id === puestoActualizado.id ? puestoActualizado : item));
+  localStorage.setItem(SUPABASE_CONFIG.localStorageKey, JSON.stringify(STALLS));
+
+  // 1. Intentar guardar vía Serverless Function de Vercel (/api/puestos)
+  try {
+    const res = await fetch("/api/puestos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(puestoActualizado)
+    });
+    if (res.ok) {
+      actualizarEstadoBadge("Guardado en Nube", "bg-emerald-500");
+      return;
+    }
+  } catch (_) {}
+
+  // 2. Intentar guardar en Supabase directo si está configurado en SUPABASE_CONFIG
+  if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey) {
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/${SUPABASE_CONFIG.table}?on_conflict=id`;
+    const payload = {
+      id: puestoActualizado.id,
+      numero: puestoActualizado.numero,
+      nombre: puestoActualizado.nombre,
+      categoria: puestoActualizado.categoria,
+      descripcion: puestoActualizado.descripcion,
+      icono: puestoActualizado.icono,
+      color: puestoActualizado.color,
+      imagen: puestoActualizado.imagen,
+      lat: puestoActualizado.lat,
+      lng: puestoActualizado.lng,
+      productos: puestoActualizado.productos
+    };
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_CONFIG.anonKey,
+        Authorization: `Bearer ${SUPABASE_CONFIG.anonKey}`,
+        Prefer: "resolution=merge-duplicates,return=representation"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
+    actualizarEstadoBadge("Guardado en Supabase", "bg-emerald-500");
+  }
+}
+
+function actualizarEstadoBadge(texto, colorDot) {
+  const el = document.getElementById("backend-status");
+  if (!el) return;
+  el.innerHTML = `<span class="w-2.5 h-2.5 rounded-full ${colorDot} animate-pulse"></span> ${texto}`;
+}
+
+// ======================================================
+// CONFIGURACIÓN DEL MAPA
+// ======================================================
+document.addEventListener("DOMContentLoaded", async () => {
+  const centerIctinos = [-33.471744, -70.562851];
+
+  map = L.map("map", {
+    center: centerIctinos,
+    zoom: 17,
+    zoomControl: true
+  });
+
+  L.tileLayer("https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}", {
+    maxZoom: 20,
+    attribution: "&copy; Google Maps Relieve"
+  }).addTo(map);
+
+  markersLayerGroup = L.layerGroup().addTo(map);
+
+  STALLS = await cargarPuestosDesdeBackend();
+  cargarPuestos();
+});
+
+function cargarPuestos() {
+  markersLayerGroup.clearLayers();
+
+  STALLS.forEach(stall => {
+    const customIcon = L.divIcon({
+      className: "custom-marker",
+      html: `
+        <div class="marker-pin" style="background-color: ${stall.color};">
+          <i class="fa-solid ${stall.icono}"></i>
+        </div>
+      `,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+
+    const marker = L.marker([stall.lat, stall.lng], { icon: customIcon }).addTo(markersLayerGroup);
+
+    marker.on("click", () => {
+      openModal(stall);
+    });
+  });
+}
+
+// ======================================================
+// MODAL DETALLADO DEL PUESTO (CON DESCRIPCIÓN)
+// ======================================================
+function openModal(stall) {
+  const modal = document.getElementById("stall-modal");
+  const content = modal.querySelector("div");
+  const pendiente = esPuestoPendiente(stall);
+
+  content.innerHTML = `
+    <div class="relative h-44 overflow-hidden border-b border-slate-700 shrink-0">
+      <img src="${stall.imagen}" class="w-full h-full object-cover" alt="${stall.nombre}">
+      <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
+      
+      <button onclick="closeModal()" class="absolute top-3 right-3 bg-slate-900/80 hover:bg-slate-900 text-slate-300 w-9 h-9 rounded-full flex items-center justify-center border border-slate-700 transition">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="absolute bottom-3 left-4 right-4">
+        <span class="text-xs font-bold px-2.5 py-0.5 rounded-md text-slate-950 mb-1 inline-block" style="background-color: ${stall.color}">
+          ${stall.numero} • ${stall.categoria}
+        </span>
+        <h2 class="text-xl font-bold text-slate-100">${stall.nombre}</h2>
+      </div>
+    </div>
+
+    <div class="p-5 overflow-y-auto space-y-4 flex-1">
+      <!-- Descripción del Puesto -->
+      <div class="bg-slate-900/60 border border-slate-700/70 p-3.5 rounded-2xl">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+          <i class="fa-solid fa-align-left text-emerald-400"></i> Descripción del Puesto
+        </h3>
+        <p class="text-sm text-slate-300 leading-relaxed">
+          ${stall.descripcion}
+        </p>
+      </div>
+
+      <!-- Lista de Productos y Precios -->
+      <div>
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+          <i class="fa-solid fa-tag text-emerald-400"></i> Productos y Precios Destacados
+        </h3>
+        <div class="space-y-2">
+          ${stall.productos.map(p => `
+            <div class="bg-slate-900/80 border border-slate-700/80 p-3 rounded-xl flex items-center justify-between">
+              <span class="font-medium text-slate-200 text-sm">${p.nombre}</span>
+              <span class="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                $${Number(p.precio).toLocaleString("es-CL")} / ${p.unidad}
+              </span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+
+    <div class="p-4 border-t border-slate-700/80 bg-slate-900/60 flex flex-col sm:flex-row gap-2.5">
+      ${pendiente ? `
+        <button onclick="openRegisterForm(${stall.id})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20">
+          <i class="fa-solid fa-user-plus"></i> Registrar Vendedor
+        </button>
+      ` : ""}
+      <button onclick="closeModal()" class="${pendiente ? "sm:w-32" : "w-full"} bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 px-4 rounded-xl font-bold text-sm transition">
+        Cerrar Ficha
+      </button>
+    </div>
+  `;
+
+  modal.classList.remove("hidden");
+}
+
+// ======================================================
+// FORMULARIO DE REGISTRO PARA PUESTOS "PENDIENTE"
+// ======================================================
+function openRegisterForm(stallId) {
+  const stall = STALLS.find(s => s.id === stallId);
+  if (!stall) return;
+
+  const modal = document.getElementById("stall-modal");
+  const content = modal.querySelector("div");
+  const categoriasDisponibles = Object.keys(CATEGORIA_ESTILOS);
+
+  content.innerHTML = `
+    <div class="px-5 py-4 border-b border-slate-700 flex items-center justify-between shrink-0 bg-slate-900/50">
+      <div>
+        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">${stall.numero} • Disponible</span>
+        <h2 class="text-lg font-bold text-slate-100">Registrar Vendedor</h2>
+      </div>
+      <button onclick="openModal(STALLS.find(s => s.id === ${stall.id}))" class="bg-slate-800 hover:bg-slate-700 text-slate-300 w-9 h-9 rounded-full flex items-center justify-center border border-slate-700 transition">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+
+    <form id="register-stall-form" class="p-5 overflow-y-auto space-y-4 flex-1">
+      <div>
+        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+          Nombre del Vendedor o Puesto *
+        </label>
+        <input type="text" name="nombre" required placeholder="Ej: Frutería Don Pedro"
+          class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+          Categoría *
+        </label>
+        <select name="categoria" required
+          class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 outline-none">
+          <option value="" disabled selected>Selecciona una categoría</option>
+          ${categoriasDisponibles.map(cat => `<option value="${cat}">${cat}</option>`).join("")}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+          Descripción del Puesto *
+        </label>
+        <textarea name="descripcion" rows="3" required placeholder="Describe qué productos ofrece el puesto o su especialidad..."
+          class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 outline-none resize-none"></textarea>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+            Productos y Precios Destacados *
+          </label>
+          <button type="button" onclick="agregarFilaProducto()" class="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+            <i class="fa-solid fa-plus-circle"></i> Agregar producto
+          </button>
+        </div>
+
+        <div id="productos-container" class="space-y-2.5">
+          ${renderFilaProducto(0)}
+        </div>
+      </div>
+
+      <p id="form-error" class="text-xs text-rose-400 hidden"></p>
+    </form>
+
+    <div class="p-4 border-t border-slate-700/80 bg-slate-900/60 flex gap-2.5 shrink-0">
+      <button type="button" onclick="openModal(STALLS.find(s => s.id === ${stall.id}))" class="w-1/3 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-xl font-bold text-sm transition">
+        Volver
+      </button>
+      <button type="submit" form="register-stall-form" id="btn-submit-registro" class="w-2/3 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+        <i class="fa-solid fa-check"></i> Guardar Registro
+      </button>
+    </div>
+  `;
+
+  document.getElementById("register-stall-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await procesarRegistroVendedor(stall.id, e.target);
+  });
+}
+
+function renderFilaProducto(index) {
+  return `
+    <div class="producto-row bg-slate-900/80 border border-slate-700/80 p-3 rounded-xl grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+      <input type="text" name="prod_nombre_${index}" required placeholder="Producto (ej: Palta)"
+        class="sm:col-span-5 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 outline-none focus:border-emerald-500">
+      <input type="number" name="prod_precio_${index}" required min="1" step="1" placeholder="Precio ($)"
+        class="sm:col-span-3 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 outline-none focus:border-emerald-500">
+      <div class="sm:col-span-4 flex items-center gap-1.5">
+        <input type="text" name="prod_unidad_${index}" required placeholder="Unidad (kg, 1 un)"
+          class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 outline-none focus:border-emerald-500">
+        ${index > 0 ? `
+          <button type="button" onclick="this.closest('.producto-row').remove()" class="text-slate-400 hover:text-rose-400 p-1">
+            <i class="fa-solid fa-trash-can text-xs"></i>
+          </button>
+        ` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function agregarFilaProducto() {
+  const container = document.getElementById("productos-container");
+  const nextIndex = container.querySelectorAll(".producto-row").length;
+  container.insertAdjacentHTML("beforeend", renderFilaProducto(nextIndex));
+}
+
+async function procesarRegistroVendedor(stallId, form) {
+  const errorEl = document.getElementById("form-error");
+  const submitBtn = document.getElementById("btn-submit-registro");
+  errorEl.classList.add("hidden");
+
+  const formData = new FormData(form);
+  const nombre = String(formData.get("nombre") || "").trim();
+  const categoria = String(formData.get("categoria") || "").trim();
+  const descripcion = String(formData.get("descripcion") || "").trim();
+
+  const filas = [...form.querySelectorAll(".producto-row")];
+  const productos = filas.map((_, idx) => {
+    const pNombre = String(formData.get(`prod_nombre_${idx}`) || "").trim();
+    const pPrecio = Number(formData.get(`prod_precio_${idx}`));
+    const pUnidad = String(formData.get(`prod_unidad_${idx}`) || "").trim();
+    return { nombre: pNombre, precio: pPrecio, unidad: pUnidad };
+  }).filter(p => p.nombre && !Number.isNaN(p.precio) && p.precio > 0 && p.unidad);
+
+  if (!nombre || !categoria || !descripcion || productos.length === 0) {
+    errorEl.textContent = "Completa todos los campos obligatorios y agrega al menos un producto con precio válido.";
+    errorEl.classList.remove("hidden");
+    return;
+  }
+
+  const original = STALLS.find(s => s.id === stallId);
+  const estilo = CATEGORIA_ESTILOS[categoria] || { icono: "fa-store", color: "#10b981" };
+
+  const puestoActualizado = {
+    ...original,
+    nombre,
+    categoria,
+    descripcion,
+    icono: estilo.icono,
+    color: estilo.color,
+    productos
+  };
+
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`;
+
+  try {
+    await guardarPuestoEnBackend(puestoActualizado);
+    cargarPuestos();
+    openModal(puestoActualizado);
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = "Error al guardar el registro. Intenta nuevamente.";
+    errorEl.classList.remove("hidden");
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = `<i class="fa-solid fa-check"></i> Guardar Registro`;
+  }
+}
+
+function closeModal() {
+  document.getElementById("stall-modal").classList.add("hidden");
+}
+
+document.getElementById("stall-modal").addEventListener("click", (e) => {
+  if (e.target.id === "stall-modal") {
+    closeModal();
+  }
+});
