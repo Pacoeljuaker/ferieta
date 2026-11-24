@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feria Grecia - Ictinos</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-900 text-slate-100 font-['Outfit',sans-serif] h-screen flex flex-col overflow-hidden">
+
+  <!-- Header -->
+  <header class="bg-slate-800/95 border-b border-slate-700/80 px-4 py-3 flex items-center justify-between z-10 shadow-lg backdrop-blur gap-2">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-emerald-500/30 shrink-0">
+        <i class="fa-solid fa-store"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-slate-100 leading-tight">
+          Feria Grecia <span class="text-xs text-emerald-400 font-normal border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 rounded-full ml-1">Ictinos</span>
+        </h1>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 sm:gap-3">
+      <div id="backend-status" class="hidden md:flex text-xs text-slate-400 bg-slate-700/50 px-3 py-1.5 rounded-xl border border-slate-600 items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Conectado
+      </div>
+
+      <!-- Zona de Usuario / Sesión -->
+      <div id="user-header-controls" class="flex items-center gap-2">
+        <!-- Inyectado dinámicamente por script.js -->
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor Mapa -->
+  <main class="flex-1 relative w-full h-full">
+    <div id="map" class="w-full h-full"></div>
+
+    <!-- Barra Superior de Filtros (Categoría y Precios) -->
+    <div class="absolute top-4 left-4 right-4 sm:left-5 sm:right-auto z-[1000] flex flex-col items-start gap-2.5 max-w-full sm:max-w-md pointer-events-none">
+      <div class="flex items-center gap-2 pointer-events-auto">
+        <button id="btn-toggle-filters" onclick="toggleFilterPanel()"
+          class="bg-slate-900/95 hover:bg-slate-800 text-slate-100 border border-slate-700 px-3.5 py-2.5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-2 text-xs font-bold transition">
+          <i class="fa-solid fa-sliders text-emerald-400 text-sm"></i>
+          <span>Filtrar Puestos</span>
+          <span id="filter-active-badge" class="hidden bg-emerald-500 text-slate-950 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">0</span>
+        </button>
+
+        <div id="filter-count-pill" class="bg-slate-900/90 text-slate-300 border border-slate-700/80 px-3 py-2 rounded-2xl shadow-lg backdrop-blur text-[11px] font-semibold">
+          Mostrando todos
+        </div>
+
+        <button id="btn-clear-filters-quick" onclick="resetFiltros()" title="Limpiar filtros"
+          class="hidden bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 px-2.5 py-2 rounded-2xl shadow-lg backdrop-blur text-xs font-bold transition">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+      </div>
+
+      <!-- Panel Desplegable de Filtros -->
+      <div id="filter-panel" class="hidden pointer-events-auto w-full sm:w-96 bg-slate-900/95 border border-slate-700 rounded-3xl shadow-2xl backdrop-blur-md p-4 space-y-4 animate-scale-up">
+        <!-- Filtro por Categoría -->
+        <div>
+          <label for="filter-categoria" class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <i class="fa-solid fa-layer-group text-emerald-400"></i> Categoría
+          </label>
+          <select id="filter-categoria" onchange="aplicarFiltros()"
+            class="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-slate-100 outline-none">
+            <option value="todas">Todas las categorías</option>
+          </select>
+        </div>
+
+        <!-- Filtro por Rango de Precios -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-tag text-emerald-400"></i> Rango de Precios (Productos)
+            </label>
+            <button type="button" onclick="seleccionarPresetPrecio('todos')" class="text-[11px] text-sky-400 hover:text-sky-300 font-semibold">
+              Cualquier precio
+            </button>
+          </div>
+
+          <!-- Accesos rápidos de precio -->
+          <div class="grid grid-cols-3 gap-1.5 mb-2.5">
+            <button type="button" data-price-preset="hasta-1500" onclick="seleccionarPresetPrecio('hasta-1500')"
+              class="price-preset-btn bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl py-1.5 px-2 text-[11px] font-semibold transition">
+              Hasta $1.500
+            </button>
+            <button type="button" data-price-preset="1500-5000" onclick="seleccionarPresetPrecio('1500-5000')"
+              class="price-preset-btn bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl py-1.5 px-2 text-[11px] font-semibold transition">
+              $1.500 – $5.000
+            </button>
+            <button type="button" data-price-preset="5000-mas" onclick="seleccionarPresetPrecio('5000-mas')"
+              class="price-preset-btn bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl py-1.5 px-2 text-[11px] font-semibold transition">
+              $5.000 o más
+            </button>
+          </div>
+
+          <!-- Inputs Min / Max personalizados -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label for="filter-precio-min" class="block text-[10px] text-slate-400 font-semibold mb-1">Precio Mínimo ($)</label>
+              <input id="filter-precio-min" type="number" min="0" step="100" placeholder="Ej: 500" oninput="aplicarFiltros()"
+                class="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl px-3 py-1.5 text-xs text-slate-100 outline-none">
+            </div>
+            <div>
+              <label for="filter-precio-max" class="block text-[10px] text-slate-400 font-semibold mb-1">Precio Máximo ($)</label>
+              <input id="filter-precio-max" type="number" min="0" step="100" placeholder="Ej: 3000" oninput="aplicarFiltros()"
+                class="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl px-3 py-1.5 text-xs text-slate-100 outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Opción incluir puestos pendientes -->
+        <label class="flex items-center justify-between bg-slate-800/70 border border-slate-700/70 px-3 py-2 rounded-xl cursor-pointer select-none">
+          <span class="text-xs text-slate-300 font-medium">Mostrar puestos "Pendiente"</span>
+          <input id="filter-incluir-pendientes" type="checkbox" checked onchange="aplicarFiltros()"
+            class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+        </label>
+
+        <div class="flex items-center justify-between pt-1 border-t border-slate-800">
+          <button type="button" onclick="resetFiltros()" class="text-xs font-bold text-slate-400 hover:text-slate-200 transition">
+            Restablecer
+          </button>
+          <button type="button" onclick="toggleFilterPanel(false)" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition">
+            Listo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botón Mi Ubicación -->
+    <button id="btn-locate-me" onclick="toggleUbicacionActual()" title="Ver o centrar mi ubicación actual"
+      class="absolute bottom-5 right-5 z-[1000] bg-slate-900/95 hover:bg-slate-800 text-slate-100 border border-slate-700 px-3.5 py-2.5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-2 text-xs font-bold transition">
+      <i id="locate-icon" class="fa-solid fa-location-crosshairs text-sky-400 text-sm"></i>
+      <span id="locate-label">Mi Ubicación</span>
+    </button>
+
+    <!-- Indicador Flotante -->
+    <div class="absolute bottom-5 left-5 z-[1000] bg-slate-900/90 border border-slate-700 p-3 rounded-2xl shadow-xl backdrop-blur max-w-xs hidden sm:block">
+      <p class="text-xs text-slate-300 font-medium flex items-center gap-2 mb-1">
+        <i class="fa-solid fa-circle-info text-emerald-400"></i> Tip:
+      </p>
+      <p class="text-[11px] text-slate-400 leading-relaxed">
+        Haz <strong>clic derecho</strong> en cualquier parte del mapa (se ajusta a la cuadrícula) para registrar un nuevo puesto, o usa un puesto <strong>Pendiente</strong>.
+      </p>
+    </div>
+  </main>
+
+  <!-- Modal Detallado del Puesto / Registro -->
+  <div id="stall-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-3xl max-w-lg w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up">
+      <!-- Contenido inyectado con JavaScript -->
+    </div>
+  </div>
+
+  <!-- Modal de Autenticación (Login / Registro de Usuario) -->
+  <div id="auth-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[10000] hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-3xl max-w-md w-full flex flex-col shadow-2xl overflow-hidden animate-scale-up">
+      <!-- Contenido inyectado con JavaScript -->
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
