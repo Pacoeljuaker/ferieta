@@ -2473,6 +2473,18 @@ function proyectarEnCuadriculaCalles(lat, lng) {
   };
 }
 
+function abrirRegistroEnCoordenadas(lat, lng) {
+  const snapped = proyectarEnCuadriculaCalles(lat, lng);
+  mostrarMarcadorCuadricula(snapped.lat, snapped.lng);
+
+  if (!currentUser) {
+    pendingCoordsAfterAuth = snapped;
+    openAuthModal("login", "Inicia sesión o crea una cuenta para registrar un nuevo puesto en esta ubicación.");
+    return;
+  }
+  openRegisterForm(null, snapped);
+}
+
 function mostrarMarcadorCuadricula(lat, lng) {
   if (!map) return;
   if (gridSnapMarker) {
@@ -2480,11 +2492,20 @@ function mostrarMarcadorCuadricula(lat, lng) {
   }
   const icon = L.divIcon({
     className: "grid-snap-marker",
-    html: `<div class="grid-snap-pin"><i class="fa-solid fa-plus"></i></div>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13]
+    html: `<div class="grid-snap-pin" title="Toca para registrar puesto aquí"><i class="fa-solid fa-plus"></i></div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16]
   });
-  gridSnapMarker = L.marker([lat, lng], { icon, zIndexOffset: 750 }).addTo(map);
+  gridSnapMarker = L.marker([lat, lng], {
+    icon,
+    zIndexOffset: 900,
+    interactive: true
+  }).addTo(map);
+
+  gridSnapMarker.on("click", (ev) => {
+    L.DomEvent.stopPropagation(ev);
+    abrirRegistroEnCoordenadas(lat, lng);
+  });
 }
 
 function limpiarMarcadorCuadricula() {
@@ -2494,18 +2515,42 @@ function limpiarMarcadorCuadricula() {
   }
 }
 
+let modoAgregarPuestoActivo = false;
+
+function toggleModoAgregarPuesto(forzar = null) {
+  modoAgregarPuestoActivo = typeof forzar === "boolean" ? forzar : !modoAgregarPuestoActivo;
+  const btn = document.getElementById("btn-add-stall-mode");
+  const banner = document.getElementById("add-stall-banner");
+  const mapEl = document.getElementById("map");
+
+  if (btn) {
+    btn.classList.toggle("bg-emerald-600", modoAgregarPuestoActivo);
+    btn.classList.toggle("text-white", modoAgregarPuestoActivo);
+    btn.classList.toggle("border-emerald-400", modoAgregarPuestoActivo);
+    btn.classList.toggle("bg-slate-900/95", !modoAgregarPuestoActivo);
+    btn.classList.toggle("text-slate-100", !modoAgregarPuestoActivo);
+  }
+  if (banner) {
+    banner.classList.toggle("hidden", !modoAgregarPuestoActivo);
+  }
+  if (mapEl) {
+    mapEl.style.cursor = modoAgregarPuestoActivo ? "crosshair" : "";
+  }
+}
+
 function inicializarRegistroPorClicDerecho() {
   if (!map) return;
-  map.on("contextmenu", (e) => {
-    const snapped = proyectarEnCuadriculaCalles(e.latlng.lat, e.latlng.lng);
-    mostrarMarcadorCuadricula(snapped.lat, snapped.lng);
 
-    if (!currentUser) {
-      pendingCoordsAfterAuth = snapped;
-      openAuthModal("login", "Inicia sesión o crea una cuenta para registrar un nuevo puesto en esta ubicación.");
-      return;
-    }
-    openRegisterForm(null, snapped);
+  // Clic derecho en PC / pulsación larga en móvil
+  map.on("contextmenu", (e) => {
+    abrirRegistroEnCoordenadas(e.latlng.lat, e.latlng.lng);
+  });
+
+  // Toque/clic normal cuando está activo el modo "+ Registrar Puesto"
+  map.on("click", (e) => {
+    if (!modoAgregarPuestoActivo) return;
+    toggleModoAgregarPuesto(false);
+    abrirRegistroEnCoordenadas(e.latlng.lat, e.latlng.lng);
   });
 }
 
@@ -2549,6 +2594,7 @@ function openRegisterForm(stallId = null, coordsOverride = null) {
   const modal = document.getElementById("stall-modal");
   const content = modal.querySelector("div");
   const categoriasDisponibles = Object.keys(CATEGORIA_ESTILOS);
+  modal.classList.remove("hidden");
 
   const volverAction = esNuevoEnMapa
     ? "limpiarMarcadorCuadricula(); closeModal();"

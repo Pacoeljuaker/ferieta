@@ -147,13 +147,32 @@
       </div>
     </div>
 
-    <!-- Botón Mi Ubicación (siempre visible en teléfono y escritorio) -->
-    <button id="btn-locate-me" onclick="toggleUbicacionActual()" title="Ver o centrar mi ubicación actual"
-      style="bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 1rem));"
-      class="fixed sm:absolute right-3.5 sm:right-5 z-[1100] bg-slate-900/95 hover:bg-slate-800 active:scale-95 text-slate-100 border border-slate-600 px-3.5 py-2.5 rounded-2xl shadow-2xl backdrop-blur flex items-center gap-2 text-xs font-bold transition">
-      <i id="locate-icon" class="fa-solid fa-location-crosshairs text-sky-400 text-base sm:text-sm"></i>
-      <span id="locate-label">Mi Ubicación</span>
-    </button>
+    <!-- Banner de ayuda cuando se activa el modo + Registrar Puesto -->
+    <div id="add-stall-banner"
+      style="bottom: max(4.75rem, calc(env(safe-area-inset-bottom) + 4.5rem));"
+      class="hidden fixed sm:absolute left-1/2 -translate-x-1/2 z-[1100] bg-emerald-950/95 text-emerald-200 border border-emerald-500/50 px-4 py-2 rounded-2xl shadow-2xl backdrop-blur text-xs font-semibold flex items-center gap-2.5 whitespace-nowrap">
+      <i class="fa-solid fa-location-dot text-emerald-400 animate-bounce"></i>
+      <span>Toca el mapa donde quieras ubicar el puesto</span>
+      <button type="button" onclick="toggleModoAgregarPuesto(false)" class="text-emerald-300 hover:text-white ml-1">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Botones flotantes inferiores derechos: + Nuevo Puesto y Mi Ubicación -->
+    <div style="bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 1rem));"
+      class="fixed sm:absolute right-3.5 sm:right-5 z-[1100] flex items-center gap-2">
+      <button id="btn-add-stall-mode" onclick="toggleModoAgregarPuesto()" title="Toca para elegir ubicación en el mapa y registrar un puesto"
+        class="bg-slate-900/95 hover:bg-slate-800 active:scale-95 text-slate-100 border border-slate-600 px-3.5 py-2.5 rounded-2xl shadow-2xl backdrop-blur flex items-center gap-2 text-xs font-bold transition">
+        <i class="fa-solid fa-plus text-emerald-400 text-base sm:text-sm"></i>
+        <span>Nuevo Puesto</span>
+      </button>
+
+      <button id="btn-locate-me" onclick="toggleUbicacionActual()" title="Ver o centrar mi ubicación actual"
+        class="bg-slate-900/95 hover:bg-slate-800 active:scale-95 text-slate-100 border border-slate-600 px-3.5 py-2.5 rounded-2xl shadow-2xl backdrop-blur flex items-center gap-2 text-xs font-bold transition">
+        <i id="locate-icon" class="fa-solid fa-location-crosshairs text-sky-400 text-base sm:text-sm"></i>
+        <span id="locate-label">Mi Ubicación</span>
+      </button>
+    </div>
 
     <!-- Indicador Flotante -->
     <div class="absolute bottom-5 left-5 z-[1000] bg-slate-900/90 border border-slate-700 p-3 rounded-2xl shadow-xl backdrop-blur max-w-xs hidden sm:block">
